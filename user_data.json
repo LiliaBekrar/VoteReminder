@@ -1,7 +1,12 @@
 {
     "266688530015584277": {
         "rappel_quotidien": "7:10",
-        "next_reminder": "2025-03-27 07:10:00",
+        "next_reminder": "2025-03-26 21:24:41",
+        "postpone_time": 90
+    },
+    "490423881392455691": {
+        "rappel_quotidien": "6:30",
+        "next_reminder": "2025-03-26 21:18:53",
         "postpone_time": 90
     }
 }
