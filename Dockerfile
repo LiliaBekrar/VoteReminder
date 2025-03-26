@@ -12,14 +12,17 @@ RUN apt-get update && apt-get install -y \
     meson \
     && rm -rf /var/lib/apt/lists/*
 
-# Copier les fichiers de ton projet dans le répertoire courant
+# Copier tous les fichiers du projet dans le répertoire courant
 COPY . /app
 
 # Se déplacer dans le répertoire de l'application
 WORKDIR /app
 
-# Installer les dépendances de Python
+# Installer les dépendances de Cython et PyYAML avant les autres
+RUN pip install Cython PyYAML
+
+# Installer les autres dépendances de Python
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Commande pour démarrer l'application
-CMD ["python", "app.py"]
+CMD ["python", "bot.py"]
