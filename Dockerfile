@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     g++ \
     make \
     meson \
-    libsystemd-dev \  # Ajoute la bibliothèque manquante
+    libsystemd-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copier tous les fichiers du projet dans le répertoire courant
