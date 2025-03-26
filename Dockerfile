@@ -18,12 +18,12 @@ COPY . /app
 # Se déplacer dans le répertoire de l'application
 WORKDIR /app
 
-# Mettre à jour pip pour éviter des problèmes avec la version actuelle
-RUN pip install --upgrade pip
+# Mettre à jour pip, setuptools, et wheel pour éviter des problèmes avec la version actuelle
+RUN pip install --upgrade pip setuptools wheel
 
-# Installer Cython et PyYAML avant les autres dépendances
-RUN pip install Cython==3.0.0
-RUN pip install PyYAML==5.4.1
+# Installer Cython (version inférieure à 3.0.0) et PyYAML sans isolation de build
+RUN pip install "cython<3.0.0"
+RUN pip install --no-build-isolation pyyaml==5.4.1
 
 # Installer les autres dépendances de Python
 RUN pip install --no-cache-dir -r requirements.txt
