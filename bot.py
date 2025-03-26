@@ -7,15 +7,17 @@ import os
 import re
 import pytz
 import logging
+import sys
 
 # SQLAlchemy
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Configuration du logging pour afficher les logs dans Railway
+# Configuration du logging pour Railway : envoyer les logs sur stdout
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    stream=sys.stdout  # Envoie directement sur stdout
 )
 
 # Définition du fuseau horaire français

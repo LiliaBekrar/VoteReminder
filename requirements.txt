@@ -1,6 +1,5 @@
 SQLAlchemy
 psycopg2-binary
-logging
 pycairo==1.21.0
 aiohappyeyeballs==2.6.1
 aiohttp==3.11.14
