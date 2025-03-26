@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y \
     make \
     meson \
     libsystemd-dev \
+    libgirepository1.0-dev \
+    libdbus-1-dev \
+    unattended-upgrades \
     && rm -rf /var/lib/apt/lists/*
 
 # Copier tous les fichiers du projet dans le répertoire courant
