@@ -18,8 +18,11 @@ COPY . /app
 # Se déplacer dans le répertoire de l'application
 WORKDIR /app
 
-# Installer les dépendances de Cython et PyYAML avant les autres
-RUN pip install Cython PyYAML
+# Mettre à jour pip pour éviter des problèmes avec la version actuelle
+RUN pip install --upgrade pip
+
+# Installer Cython et PyYAML (forcer l'installation de versions compatibles)
+RUN pip install Cython==3.0.0 PyYAML==6.0
 
 # Installer les autres dépendances de Python
 RUN pip install --no-cache-dir -r requirements.txt
