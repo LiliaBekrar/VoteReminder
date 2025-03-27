@@ -321,10 +321,26 @@ async def reminder_loop():
                 logging.info(f"Rappel quotidien réinitialisé pour {discord_user.name} à {new_daily.strftime('%H:%M:%S')}.")
     session.close()
 
+
+@tasks.loop(minutes=1)
+async def meteor_warning_loop():
+    now = datetime.now(PARIS_TZ)
+    warning_times = ["05:50", "09:50", "13:50", "17:50", "21:50", "19:12"]
+
+    if now.strftime("%H:%M") in warning_times:
+        channel_id = int(os.getenv("METEOR_CHANNEL_ID"))
+        channel = bot.get_channel(channel_id)
+        if channel:
+            await channel.send("@everyone Une météore va tomber, préparez-vous !")
+            logging.info("Message météore envoyé.")
+        else:
+            logging.error("Salon pour l'avertissement météore introuvable.")
+
 @bot.event
 async def on_ready():
     logging.info(f"Bot connecté en tant que {bot.user}")
     reminder_loop.start()
+    meteor_warning_loop.start()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 bot.run(TOKEN)
