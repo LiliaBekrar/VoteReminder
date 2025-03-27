@@ -27,7 +27,6 @@ PARIS_TZ = pytz.timezone("Europe/Paris")
 load_dotenv()
 
 # Configuration de la base de données
-# Si DATABASE_URL est défini, on l'utilise (pour PostgreSQL sur Railway), sinon on utilise SQLite en local.
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL:
     engine = create_engine(DATABASE_URL)
@@ -102,6 +101,74 @@ def calculate_daily_reminder(daily_str):
     if new_reminder <= now:
         new_reminder += timedelta(days=1)
     return new_reminder
+
+# Vue persistante pour les rappels
+class PersistentReminderView(View):
+    def __init__(self, discord_id: str):
+        # Timeout désactivé pour rendre la vue persistante
+        super().__init__(timeout=None)
+        self.discord_id = discord_id
+
+        # Bouton "Voter" : redirige vers l'URL
+        self.vote_button = Button(
+            label="Voter",
+            url="https://nationsglory.fr/vote",
+            style=discord.ButtonStyle.link,
+        )
+        # Bouton "J'ai voté"
+        self.voted_button = Button(
+            label="J'ai voté",
+            style=discord.ButtonStyle.success,
+            custom_id=f"voted_button_{discord_id}"
+        )
+        # Bouton "Repousser"
+        self.postpone_button = Button(
+            label="Repousser",
+            style=discord.ButtonStyle.secondary,
+            custom_id=f"postpone_button_{discord_id}"
+        )
+
+        self.voted_button.callback = self.voted_callback
+        self.postpone_button.callback = self.postpone_callback
+
+        self.add_item(self.vote_button)
+        self.add_item(self.voted_button)
+        self.add_item(self.postpone_button)
+
+    async def voted_callback(self, interaction: discord.Interaction):
+        if interaction.user.id != int(self.discord_id):
+            await interaction.response.send_message("Ce bouton n'est pas pour vous.", ephemeral=True)
+            return
+        session = SessionLocal()
+        user = get_user(session, self.discord_id)
+        if not user:
+            await interaction.response.send_message("Aucun rappel trouvé.", ephemeral=True)
+            session.close()
+            return
+        new_nr = datetime.now(PARIS_TZ) + timedelta(minutes=90)
+        user.next_reminder = new_nr
+        session.commit()
+        session.close()
+        await interaction.response.send_message("✅ Prochain rappel dans 1h30.", ephemeral=True)
+        logging.info(f"{interaction.user} a cliqué sur 'J'ai voté'. Nouveau rappel à {new_nr.strftime('%H:%M:%S')}.")
+
+    async def postpone_callback(self, interaction: discord.Interaction):
+        if interaction.user.id != int(self.discord_id):
+            await interaction.response.send_message("Ce bouton n'est pas pour vous.", ephemeral=True)
+            return
+        session = SessionLocal()
+        user = get_user(session, self.discord_id)
+        if not user:
+            await interaction.response.send_message("Aucun rappel trouvé.", ephemeral=True)
+            session.close()
+            return
+        postpone_time = user.postpone_time or 90
+        new_nr = datetime.now(PARIS_TZ) + timedelta(minutes=postpone_time)
+        user.next_reminder = new_nr
+        session.commit()
+        session.close()
+        await interaction.response.send_message(f"🔔 Prochain rappel dans {postpone_time} minutes.", ephemeral=True)
+        logging.info(f"{interaction.user} a cliqué sur 'Repousser'. Nouveau rappel à {new_nr.strftime('%H:%M:%S')}.")
 
 # Commande de démarrage : inscription de l'utilisateur avec un rappel quotidien
 @bot.command()
@@ -221,41 +288,21 @@ async def reminder_loop():
     for user in users:
         nr = user.next_reminder.astimezone(PARIS_TZ)
         if now >= nr:
-            discord_user = await bot.fetch_user(user.discord_id)
+            try:
+                discord_user = await bot.fetch_user(user.discord_id)
+            except Exception as e:
+                logging.error(f"Erreur lors du fetch de l'utilisateur {user.discord_id} : {e}")
+                continue
             if discord_user:
                 logging.info(f"Envoi du rappel à {discord_user.name} ({user.discord_id})")
-                view = View()
-                vote_button = Button(label="Voter", url="https://nationsglory.fr/vote", style=discord.ButtonStyle.link)
-                voted_button = Button(label="J'ai voté", style=discord.ButtonStyle.success)
-                postpone_button = Button(label="Repousser", style=discord.ButtonStyle.secondary)
-
-                async def voted_callback(interaction):
-                    if interaction.user.id == int(user.discord_id):
-                        new_nr = datetime.now(PARIS_TZ) + timedelta(minutes=90)
-                        user.next_reminder = new_nr
-                        session.commit()
-                        await interaction.response.send_message("✅ Prochain rappel dans 1h30.", ephemeral=True)
-                        logging.info(f"{discord_user.name} a cliqué sur 'J'ai voté'. Nouveau rappel à {new_nr.strftime('%H:%M:%S')}.")
-
-                async def postpone_callback(interaction):
-                    if interaction.user.id == int(user.discord_id):
-                        postpone_time = user.postpone_time or 90
-                        new_nr = datetime.now(PARIS_TZ) + timedelta(minutes=postpone_time)
-                        user.next_reminder = new_nr
-                        session.commit()
-                        await interaction.response.send_message(f"🔔 Prochain rappel dans {postpone_time} minutes.", ephemeral=True)
-                        logging.info(f"{discord_user.name} a cliqué sur 'Repousser'. Nouveau rappel à {new_nr.strftime('%H:%M:%S')}.")
-
-                voted_button.callback = voted_callback
-                postpone_button.callback = postpone_callback
-
-                view.add_item(vote_button)
-                view.add_item(voted_button)
-                view.add_item(postpone_button)
+                # Création de la vue persistante pour cet utilisateur
+                view = PersistentReminderView(user.discord_id)
+                # Ajout de la vue pour qu'elle soit reconnue comme persistante
+                bot.add_view(view)
 
                 reminder_message = (
                     "🗳️ Il est temps de voter !\n\n"
-                    "Le bouton 'Repousser' sert à reposer le rappel dans 1h30 par défaut.\n"
+                    "Le bouton 'Repousser' sert à repousser le rappel par défaut de 1h30.\n"
                     "Pour personnaliser ce délai, utilisez `?repousser <nombre>m` ou `?repousser <nombre>h`."
                 )
                 if user.discord_id == "490423881392455691":
