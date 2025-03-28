@@ -325,7 +325,7 @@ async def reminder_loop():
 @tasks.loop(minutes=1)
 async def meteor_warning_loop():
     now = datetime.now(PARIS_TZ)
-    warning_times = ["05:50", "09:50", "13:50", "17:50", "21:50", "19:12"]
+    warning_times = ["06:50", "10:50", "14:50", "18:50", "22:50"]
 
     if now.strftime("%H:%M") in warning_times:
         channel_id = int(os.getenv("METEOR_CHANNEL_ID"))
