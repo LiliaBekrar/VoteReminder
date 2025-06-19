@@ -1,6 +1,6 @@
 # 📩 VoteReminder — Le bot Discord pour ne plus oublier de voter !
 
-![Banner](https://raw.githubusercontent.com/LiliaBekrar/VoteReminder/main/assets/banner.png)
+![Banner](https://raw.githubusercontent.com/LiliaBekrar/VoteReminder/master/assets/banner.png)
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/o3aVuv?referralCode=your-code-here)
 ![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python)
